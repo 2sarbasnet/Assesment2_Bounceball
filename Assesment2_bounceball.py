@@ -153,6 +153,7 @@ class CatchGame:
             fill="yellow"
         )
 
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.resizable(False, False)
