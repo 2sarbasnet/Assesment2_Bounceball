@@ -13,7 +13,7 @@ START_LIVES = 3
 class CatchGame:
     def __init__(self, root):
         self.root = root
-        root.title("Catch the Ball (Level Progression)")
+        root.title("Catch the Ball (Power-Up Edition)")
         self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="black")  # arcade-style background
         self.canvas.pack()
         self.score = 0
@@ -32,6 +32,10 @@ class CatchGame:
         # Ball
         self.ball = self.canvas.create_oval(0, 0, BALL_SIZE, BALL_SIZE, fill="magenta")
         self.reset_ball()
+
+        # Power-up (extra life)
+        self.powerup = self.canvas.create_oval(0, 0, 15, 15, fill="green", state='hidden')
+        self.powerup_active = False
 
         # Scoreboard & instructions
         self.score_text = self.canvas.create_text(60, 25, text=f"Score: {self.score}", font=("Arial", 14, "bold"), fill="yellow")
@@ -103,6 +107,8 @@ class CatchGame:
             self.info_text,
             text="← / → to move   |   Space to pause   |   R to restart"
         )
+        self.canvas.itemconfigure(self.powerup, state='hidden')
+        self.powerup_active = False
 
     def loop(self):
         if not self.paused and self.lives > 0:
@@ -141,6 +147,27 @@ class CatchGame:
                 self.ball_dy = -self.ball_dy  # bounce upward
                 hit_pos = ((bx1 + bx2) / 2 - (px1 + px2) / 2) / (PLAYER_WIDTH / 2)
                 self.ball_dx += hit_pos * 2
+
+            # Spawn power-up randomly
+            if not self.powerup_active and random.random() < 0.002:
+                px = random.randint(0, WIDTH - 15)
+                self.canvas.coords(self.powerup, px, 0, px + 15, 15)
+                self.canvas.itemconfigure(self.powerup, state='normal')
+                self.powerup_active = True
+
+            # Move power-up
+            if self.powerup_active:
+                self.canvas.move(self.powerup, 0, 4)
+                pu_x1, pu_y1, pu_x2, pu_y2 = self.canvas.coords(self.powerup)
+                # Check collision with paddle
+                if (pu_x2 >= px1 and pu_x1 <= px2) and (pu_y2 >= py1 and pu_y1 <= py2):
+                    self.lives += 1
+                    self.canvas.itemconfig(self.lives_text, text=f"Lives: {self.lives}")
+                    self.canvas.itemconfigure(self.powerup, state='hidden')
+                    self.powerup_active = False
+                elif pu_y2 >= HEIGHT:
+                    self.canvas.itemconfigure(self.powerup, state='hidden')
+                    self.powerup_active = False
 
         self.root.after(30, self.loop)
 
