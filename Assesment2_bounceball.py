@@ -13,11 +13,12 @@ START_LIVES = 3
 class CatchGame:
     def __init__(self, root):
         self.root = root
-        root.title("Catch the Ball (Bounce Edition)")
-        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="grey")
+        root.title("Catch the Ball (Level Progression)")
+        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="black")  # arcade-style background
         self.canvas.pack()
         self.score = 0
         self.lives = START_LIVES
+        self.level = 1
         self.paused = False
 
         # Player paddle
@@ -25,26 +26,27 @@ class CatchGame:
         self.player = self.canvas.create_rectangle(
             self.player_x, HEIGHT - 40,
             self.player_x + PLAYER_WIDTH, HEIGHT - 40 + PLAYER_HEIGHT,
-            fill="blue"
+            fill="cyan"
         )
 
         # Ball
-        self.ball = self.canvas.create_oval(0, 0, BALL_SIZE, BALL_SIZE, fill="red")
+        self.ball = self.canvas.create_oval(0, 0, BALL_SIZE, BALL_SIZE, fill="magenta")
         self.reset_ball()
 
         # Scoreboard & instructions
-        self.score_text = self.canvas.create_text(60, 25, text=f"Score: {self.score}", font=("Arial", 14, "bold"), fill="white")
-        self.lives_text = self.canvas.create_text(180, 25, text=f"Lives: {self.lives}", font=("Arial", 14, "bold"), fill="white")
+        self.score_text = self.canvas.create_text(60, 25, text=f"Score: {self.score}", font=("Arial", 14, "bold"), fill="yellow")
+        self.lives_text = self.canvas.create_text(180, 25, text=f"Lives: {self.lives}", font=("Arial", 14, "bold"), fill="yellow")
+        self.level_text = self.canvas.create_text(WIDTH - 60, 25, text=f"Level: {self.level}", font=("Arial", 14, "bold"), fill="lightgreen")
         self.info_text = self.canvas.create_text(
             WIDTH // 2, 50,
             text="← / → to move   |   Space to pause   |   R to restart",
-            font=("Arial", 10), fill="black"
+            font=("Arial", 10), fill="white"
         )
 
         # Buttons
-        self.restart_btn = tk.Button(root, text="Restart", command=self.restart)
+        self.restart_btn = tk.Button(root, text="Restart", command=self.restart, bg="grey", fg="white")
         self.restart_btn.pack(side="left", padx=10, pady=6)
-        self.quit_btn = tk.Button(root, text="Quit", command=root.quit)
+        self.quit_btn = tk.Button(root, text="Quit", command=root.quit, bg="grey", fg="white")
         self.quit_btn.pack(side="right", padx=10, pady=6)
 
         # Key bindings
@@ -62,7 +64,7 @@ class CatchGame:
         x = random.randint(0, WIDTH - BALL_SIZE)
         self.canvas.coords(self.ball, x, 0, x + BALL_SIZE, BALL_SIZE)
         self.ball_dx = random.choice([-3, -2, 2, 3])
-        self.ball_dy = BALL_SPEED  # initially moving downward
+        self.ball_dy = BALL_SPEED
 
     def move_player(self, dx):
         x1, y1, x2, y2 = self.canvas.coords(self.player)
@@ -88,8 +90,10 @@ class CatchGame:
     def restart(self):
         self.score = 0
         self.lives = START_LIVES
+        self.level = 1
         self.canvas.itemconfig(self.score_text, text=f"Score: {self.score}")
         self.canvas.itemconfig(self.lives_text, text=f"Lives: {self.lives}")
+        self.canvas.itemconfig(self.level_text, text=f"Level: {self.level}")
         if self.game_over_text:
             self.canvas.delete(self.game_over_text)
             self.game_over_text = None
@@ -105,15 +109,13 @@ class CatchGame:
             self.canvas.move(self.ball, self.ball_dx, self.ball_dy)
             bx1, by1, bx2, by2 = self.canvas.coords(self.ball)
 
-            # Bounce from left/right walls
+            # Bounce from walls and top
             if bx1 <= 0 or bx2 >= WIDTH:
                 self.ball_dx = -self.ball_dx
-
-            # Bounce from top
             if by1 <= 0:
                 self.ball_dy = -self.ball_dy
 
-            # Ball missed paddle -> lose life
+            # Ball missed paddle
             if by2 >= HEIGHT:
                 self.lives -= 1
                 self.canvas.itemconfig(self.lives_text, text=f"Lives: {self.lives}")
@@ -122,13 +124,21 @@ class CatchGame:
                 else:
                     self.reset_ball()
 
-            # Ball hits paddle -> bounce
+            # Ball hits paddle
             px1, py1, px2, py2 = self.canvas.coords(self.player)
             if (bx2 >= px1 and bx1 <= px2) and (by2 >= py1 and by1 <= py2) and self.ball_dy > 0:
                 self.score += 1
                 self.canvas.itemconfig(self.score_text, text=f"Score: {self.score}")
+
+                # Level progression every 5 points
+                new_level = self.score // 5 + 1
+                if new_level > self.level:
+                    self.level = new_level
+                    self.ball_dx *= 1.1
+                    self.ball_dy *= 1.1
+                    self.canvas.itemconfig(self.level_text, text=f"Level: {self.level}")
+
                 self.ball_dy = -self.ball_dy  # bounce upward
-                # Adjust horizontal direction slightly depending on hit position
                 hit_pos = ((bx1 + bx2) / 2 - (px1 + px2) / 2) / (PLAYER_WIDTH / 2)
                 self.ball_dx += hit_pos * 2
 
@@ -138,9 +148,9 @@ class CatchGame:
         self.paused = True
         self.game_over_text = self.canvas.create_text(
             WIDTH // 2, HEIGHT // 2,
-            text=f"GAME OVER\nScore: {self.score}",
+            text=f"GAME OVER\nScore: {self.score}\nLevel: {self.level}",
             font=("Arial", 24, "bold"),
-            fill="white"
+            fill="yellow"
         )
 
 if __name__ == "__main__":
