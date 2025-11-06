@@ -13,7 +13,7 @@ START_LIVES = 3
 class CatchGame:
     def __init__(self, root):
         self.root = root
-        root.title("Catch the Ball (Power-Up Edition)")
+        root.title("Catch the Ball (Fireball Edition)")
         self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="black")  # arcade-style background
         self.canvas.pack()
         self.score = 0
@@ -109,11 +109,17 @@ class CatchGame:
         )
         self.canvas.itemconfigure(self.powerup, state='hidden')
         self.powerup_active = False
+        self.canvas.itemconfig(self.ball, fill="magenta")  # reset ball color
 
     def loop(self):
         if not self.paused and self.lives > 0:
             self.canvas.move(self.ball, self.ball_dx, self.ball_dy)
             bx1, by1, bx2, by2 = self.canvas.coords(self.ball)
+
+            # Fireball effect if score >= 5
+            if self.score >= 5:
+                fire_colors = ["yellow", "orange", "red"]
+                self.canvas.itemconfig(self.ball, fill=random.choice(fire_colors))
 
             # Bounce from walls and top
             if bx1 <= 0 or bx2 >= WIDTH:
@@ -159,7 +165,6 @@ class CatchGame:
             if self.powerup_active:
                 self.canvas.move(self.powerup, 0, 4)
                 pu_x1, pu_y1, pu_x2, pu_y2 = self.canvas.coords(self.powerup)
-                # Check collision with paddle
                 if (pu_x2 >= px1 and pu_x1 <= px2) and (pu_y2 >= py1 and pu_y1 <= py2):
                     self.lives += 1
                     self.canvas.itemconfig(self.lives_text, text=f"Lives: {self.lives}")
